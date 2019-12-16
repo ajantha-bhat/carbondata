@@ -352,15 +352,24 @@ class NewRddIterator(rddIter: Iterator[Row],
   def hasNext: Boolean = rddIter.hasNext
 
   def next: Array[AnyRef] = {
+    val isCarbonTocarbonInsert = carbonLoadModel.isCarbonToCarbonInsert
     val row = rddIter.next()
-    val columns = new Array[AnyRef](row.length)
-    for (i <- 0 until columns.length) {
-      columns(i) = CarbonScalaUtil.getString(row.get(i), serializationNullFormat,
-        complexDelimiters, timeStampFormat, dateFormat,
-        isVarcharType = i < isVarcharTypeMapping.size && isVarcharTypeMapping(i),
-        isComplexType = i < isComplexTypeMapping.size && isComplexTypeMapping(i))
+    if (!isCarbonTocarbonInsert) {
+      val columns = new Array[AnyRef](row.length)
+      for (i <- 0 until columns.length) {
+        columns(i) = CarbonScalaUtil.getString(row.get(i), serializationNullFormat,
+          complexDelimiters, timeStampFormat, dateFormat,
+          isVarcharType = i < isVarcharTypeMapping.size && isVarcharTypeMapping(i),
+          isComplexType = i < isComplexTypeMapping.size && isComplexTypeMapping(i))
+      }
+      columns
+    } else {
+      val columns = new Array[AnyRef](row.length)
+      for (i <- 0 until columns.length) {
+        columns(i) =  row.get(i).asInstanceOf[Object]
+      }
+      columns
     }
-    columns
   }
 
   override def initialize(): Unit = {
