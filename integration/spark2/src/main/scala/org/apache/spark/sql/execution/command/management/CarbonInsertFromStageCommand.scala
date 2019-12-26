@@ -264,7 +264,7 @@ case class CarbonInsertFromStageCommand(
             table.getDatabaseName + CarbonCommonConstants.POINT + table.getTableName,
             splits.map(s => s.asInstanceOf[CarbonInputSplit].getSegmentId).mkString(","))
         val dataFrame = SparkSQLUtil.createInputDataFrame(spark, table)
-        DataLoadProcessBuilderOnSpark.loadDataUsingGlobalSort(
+        DataLoadProcessBuilderOnSpark.insertDataUsingGlobalSortWithDF(
           spark,
           Option(dataFrame),
           loadModel,
@@ -340,22 +340,19 @@ case class CarbonInsertFromStageCommand(
         val header = columns.mkString(",")
         val selectColumns = columns.filter(!partition.contains(_))
         val selectedDataFrame = dataFrame.select(selectColumns.head, selectColumns.tail: _*)
-        val loadCommand = CarbonLoadDataCommand(
+        CarbonInsertIntoWithDf(
           databaseNameOp = Option(table.getDatabaseName),
           tableName = table.getTableName,
-          factPathFromUser = null,
-          dimFilesPath = Seq(),
           options = scala.collection.immutable.Map("fileheader" -> header,
             "binary_decoder" -> "base64"),
           isOverwriteTable = false,
           inputSqlString = null,
-          dataFrame = Some(selectedDataFrame),
+          dataFrame = selectedDataFrame,
           updateModel = None,
           tableInfoOp = None,
           internalOptions = Map.empty,
           partition = partition
-        )
-        loadCommand.run(spark)
+        ).process(spark)
     }
     LOGGER.info(s"finish data loading, time taken ${ System.currentTimeMillis() - start }ms")
   }

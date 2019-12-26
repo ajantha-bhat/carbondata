@@ -60,20 +60,15 @@ class DDLStrategy(sparkSession: SparkSession) extends SparkStrategy {
         if CarbonEnv.getInstance(sparkSession).carbonMetaStore
           .tableExists(identifier)(sparkSession) =>
         ExecutedCommandExec(
-          CarbonLoadDataCommand(
-            databaseNameOp = identifier.database,
+          CarbonLoadDataCommand(databaseNameOp = identifier.database,
             tableName = identifier.table.toLowerCase,
             factPathFromUser = path,
             dimFilesPath = Seq(),
             options = Map(),
             isOverwriteTable = isOverwrite,
-            inputSqlString = null,
-            dataFrame = None,
-            updateModel = None,
-            tableInfoOp = None,
-            internalOptions = Map.empty,
             partition = partition.getOrElse(Map.empty).map { case (col, value) =>
-              (col, Some(value))})) :: Nil
+              (col, Some(value))
+            })) :: Nil
       case alter@AlterTableRenameCommand(oldTableIdentifier, newTableIdentifier, _) =>
         val dbOption = oldTableIdentifier.database.map(_.toLowerCase)
         val tableIdentifier = TableIdentifier(oldTableIdentifier.table.toLowerCase(), dbOption)
@@ -102,7 +97,14 @@ class DDLStrategy(sparkSession: SparkSession) extends SparkStrategy {
         }
       case InsertIntoCarbonTable(relation: CarbonDatasourceHadoopRelation,
       partition, child: LogicalPlan, overwrite, _) =>
-        ExecutedCommandExec(CarbonInsertIntoCommand(relation, child, overwrite, partition)) :: Nil
+        ExecutedCommandExec(CarbonInsertIntoCommand(Some(relation.carbonRelation.databaseName),
+          relation.carbonRelation.tableName,
+          scala.collection.immutable
+            .Map("fileheader" -> relation.tableSchema.get.fields.map(_.name).mkString(",")),
+          overwrite,
+          logicalPlan = child,
+          tableInfoOp = Some(relation.carbonRelation.carbonTable.getTableInfo),
+          partition = partition)) :: Nil
       case createDb@CreateDatabaseCommand(dbName, ifNotExists, _, _, _) =>
         val dbLocation = try {
           CarbonEnv.getDatabaseLocation(dbName, sparkSession)

@@ -59,6 +59,8 @@ public class PrimitiveDataType implements GenericDataType<Object> {
   private static final Logger LOGGER =
       LogServiceFactory.getLogService(PrimitiveDataType.class.getName());
 
+  private static final long serialVersionUID = -1518322888733363638L;
+
   /**
    * surrogate index
    */
@@ -94,7 +96,7 @@ public class PrimitiveDataType implements GenericDataType<Object> {
    */
   private int dataCounter;
 
-  private BiDictionary<Integer, Object> dictionaryGenerator;
+  private transient BiDictionary<Integer, Object> dictionaryGenerator;
 
   private CarbonDimension carbonDimension;
 
@@ -106,7 +108,7 @@ public class PrimitiveDataType implements GenericDataType<Object> {
 
   private DataType dataType;
 
-  private BinaryDecoder binaryDecoder;
+  private transient BinaryDecoder binaryDecoder;
 
   private PrimitiveDataType(int outputArrayIndex, int dataCounter) {
     this.outputArrayIndex = outputArrayIndex;

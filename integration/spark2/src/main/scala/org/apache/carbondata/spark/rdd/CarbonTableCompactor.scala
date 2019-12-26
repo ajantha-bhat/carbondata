@@ -385,7 +385,7 @@ class CarbonTableCompactor(carbonLoadModel: CarbonLoadModel,
       val outputModel = DataLoadProcessBuilderOnSpark.createLoadModelForGlobalSort(
         sparkSession, table)
       outputModel.setSegmentId(carbonMergerMapping.mergedLoadName.split("_")(1))
-      loadResult = DataLoadProcessBuilderOnSpark.loadDataUsingGlobalSort(
+      loadResult = DataLoadProcessBuilderOnSpark.insertDataUsingGlobalSortWithDF(
         sparkSession,
         Option(dataFrame),
         outputModel,

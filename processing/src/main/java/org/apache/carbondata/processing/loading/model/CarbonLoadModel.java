@@ -167,6 +167,11 @@ public class CarbonLoadModel implements Serializable {
   private boolean isLoadWithoutConverterStep;
 
   /**
+   * for insert into flow, schema is already re-arranged. No need to re-arrange the data
+   */
+  private boolean isLoadWithoutConverterWithoutReArrangeStep;
+
+  /**
    * To identify the suitable input processor step for json file loading.
    */
   private boolean isJsonFileLoad;
@@ -402,6 +407,7 @@ public class CarbonLoadModel implements Serializable {
     copy.scaleFactor = scaleFactor;
     copy.totalSize = totalSize;
     copy.outputFilesInfoHolder = outputFilesInfoHolder;
+    copy.isLoadWithoutConverterWithoutReArrangeStep = isLoadWithoutConverterWithoutReArrangeStep;
     return copy;
   }
 
@@ -455,6 +461,8 @@ public class CarbonLoadModel implements Serializable {
     copyObj.scaleFactor = scaleFactor;
     copyObj.totalSize = totalSize;
     copyObj.outputFilesInfoHolder = outputFilesInfoHolder;
+    copyObj.isLoadWithoutConverterStep = isLoadWithoutConverterStep;
+    copyObj.isLoadWithoutConverterWithoutReArrangeStep = isLoadWithoutConverterWithoutReArrangeStep;
     return copyObj;
   }
 
@@ -856,5 +864,14 @@ public class CarbonLoadModel implements Serializable {
 
   public void setOutputFilesInfoHolder(OutputFilesInfoHolder outputFilesInfoHolder) {
     this.outputFilesInfoHolder = outputFilesInfoHolder;
+  }
+
+  public boolean isLoadWithoutConverterWithoutReArrangeStep() {
+    return isLoadWithoutConverterWithoutReArrangeStep;
+  }
+
+  public void setLoadWithoutConverterWithoutReArrangeStep(
+      boolean loadWithoutConverterWithoutReArrangeStep) {
+    isLoadWithoutConverterWithoutReArrangeStep = loadWithoutConverterWithoutReArrangeStep;
   }
 }

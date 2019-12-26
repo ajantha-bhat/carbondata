@@ -22,7 +22,7 @@ import org.apache.spark.sql.catalyst.TableIdentifier
 import org.apache.spark.sql.catalyst.analysis.TableAlreadyExistsException
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.execution.command.AtomicRunnableCommand
-import org.apache.spark.sql.execution.command.management.CarbonInsertIntoCommand
+import org.apache.spark.sql.execution.command.management.{CarbonInsertIntoCommand}
 
 import org.apache.carbondata.core.metadata.schema.table.TableInfo
 
@@ -76,11 +76,16 @@ case class CarbonCreateTableAsSelectCommand(
         .createCarbonDataSourceHadoopRelation(sparkSession,
           TableIdentifier(tableName, Option(dbName)))
       // execute command to load data into carbon table
-      loadCommand = CarbonInsertIntoCommand(
-        carbonDataSourceHadoopRelation,
-        query,
-        overwrite = false,
-        partition = Map.empty)
+      loadCommand = CarbonInsertIntoCommand(Some(carbonDataSourceHadoopRelation
+        .carbonRelation
+        .databaseName),
+        carbonDataSourceHadoopRelation.carbonRelation.tableName,
+        scala.collection.immutable
+          .Map("fileheader" ->
+               carbonDataSourceHadoopRelation.tableSchema.get.fields.map(_.name).mkString(",")),
+        isOverwriteTable = false,
+        logicalPlan = query,
+        tableInfoOp = Some(tableInfo))
       loadCommand.processMetadata(sparkSession)
     }
     Seq.empty

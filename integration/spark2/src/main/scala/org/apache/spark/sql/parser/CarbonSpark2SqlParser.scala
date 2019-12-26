@@ -471,18 +471,12 @@ class CarbonSpark2SqlParser extends CarbonDDLSqlParser {
         }
         val optionsMap = optionsList.getOrElse(List.empty[(String, String)]).toMap
         val partitionSpec = partitions.getOrElse(List.empty[(String, Option[String])]).toMap
-        CarbonLoadDataCommand(
-          databaseNameOp = convertDbNameToLowerCase(databaseNameOp),
+        CarbonLoadDataCommand(databaseNameOp = convertDbNameToLowerCase(databaseNameOp),
           tableName = tableName,
           factPathFromUser = filePath,
           dimFilesPath = Seq(),
           options = optionsMap,
           isOverwriteTable = isOverwrite.isDefined,
-          inputSqlString = null,
-          dataFrame = None,
-          updateModel = None,
-          tableInfoOp = None,
-          internalOptions = Map.empty,
           partition = partitionSpec)
     }
 
