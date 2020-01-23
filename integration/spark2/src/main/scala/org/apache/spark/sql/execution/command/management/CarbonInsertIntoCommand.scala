@@ -46,7 +46,7 @@ import org.apache.carbondata.core.metadata.SegmentFileStore
 import org.apache.carbondata.core.metadata.schema.table.{CarbonTable, TableInfo}
 import org.apache.carbondata.core.metadata.schema.table.column.ColumnSchema
 import org.apache.carbondata.core.statusmanager.{LoadMetadataDetails, SegmentStatus, SegmentStatusManager}
-import org.apache.carbondata.core.util.{CarbonProperties, ThreadLocalSessionInfo}
+import org.apache.carbondata.core.util.{CarbonProperties, DataTypeUtil, ThreadLocalSessionInfo}
 import org.apache.carbondata.core.util.path.CarbonTablePath
 import org.apache.carbondata.events.exception.PreEventException
 import org.apache.carbondata.events.OperationContext
@@ -148,6 +148,8 @@ case class CarbonInsertIntoCommand(databaseNameOp: Option[String],
         null
       }
     val convertedStaticPartition = mutable.Map[String, AnyRef]()
+    // Remove the thread local entries of previous configurations.
+    DataTypeUtil.setDataTypeConverter(new SparkDataTypeConverterImpl)
     if (partition.nonEmpty) {
       for (col <- partitionColumnSchema) {
         if (partition(col.getColumnName.toLowerCase).isDefined) {
@@ -213,7 +215,28 @@ case class CarbonInsertIntoCommand(databaseNameOp: Option[String],
     // Re-arrange the project as per columnSchema
     val newLogicalPlan = logicalPlan.transformDown {
       case p: Project =>
-        val oldProjectionList = p.projectList
+        var oldProjectionList = p.projectList
+        if (partition.nonEmpty) {
+          // partition keyword is present in insert and
+          // select query partition projections may not be same as create order.
+          // So, bring to create table order
+          val dynamicPartition = partition.filterNot(entry => entry._2.isDefined)
+          var index = 0
+          val map = mutable.Map[String, Int]()
+          for (part <- dynamicPartition) {
+            map(part._1) = index
+            index = index + 1
+          }
+          var tempList = oldProjectionList.take(oldProjectionList.size - dynamicPartition.size)
+          val partitionList = oldProjectionList.takeRight(dynamicPartition.size)
+          val partitionSchema = table.getPartitionInfo.getColumnSchemaList.asScala
+          for (partitionCol <- partitionSchema) {
+            if (map.get(partitionCol.getColumnName).isDefined) {
+              tempList = tempList :+ partitionList(map(partitionCol.getColumnName))
+            }
+          }
+          oldProjectionList = tempList
+        }
         if (reArrangedIndex.size != oldProjectionList.size) {
           // for non-partition table columns must match
           if (partition.isEmpty) {
