@@ -860,7 +860,7 @@ object CommonLoadUtils {
     }
     var persistedRDD: Option[RDD[InternalRow]] = None
     try {
-      val query: LogicalPlan = if ((loadParams.dataFrame.isDefined) ||
+      val query: LogicalPlan = if (loadParams.dataFrame.isDefined ||
                                    loadParams.scanResultRDD.isDefined) {
         val (rdd, dfAttributes) = if (loadParams.updateModel.isDefined) {
           // Get the updated query plan in case of update scenario

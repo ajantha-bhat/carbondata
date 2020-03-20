@@ -53,7 +53,7 @@ case class CarbonLoadParams(
     currPartitions: util.List[PartitionSpec],
     partitionStatus : SegmentStatus,
     var dataFrame: Option[DataFrame],
-    scanResultRDD : Option[RDD[InternalRow]],
+    var scanResultRDD : Option[RDD[InternalRow]],
     updateModel: Option[UpdateTableModel],
     operationContext: OperationContext) {
 }

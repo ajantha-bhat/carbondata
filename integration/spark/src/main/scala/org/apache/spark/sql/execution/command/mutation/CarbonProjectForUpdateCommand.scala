@@ -23,7 +23,7 @@ import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.expressions.{Attribute, AttributeReference}
 import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, Project}
 import org.apache.spark.sql.execution.command._
-import org.apache.spark.sql.execution.command.management.CarbonInsertIntoWithDf
+import org.apache.spark.sql.execution.command.management.CarbonInsertIntoCommand
 import org.apache.spark.sql.execution.datasources.LogicalRelation
 import org.apache.spark.sql.execution.strategy.MixedFormatHandler
 import org.apache.spark.sql.functions._
@@ -316,13 +316,14 @@ private[sql] case class CarbonProjectForUpdateCommand(
 
     val header = getHeader(carbonRelation, plan)
 
-    CarbonInsertIntoWithDf(
+    CarbonInsertIntoCommand(
       databaseNameOp = Some(carbonRelation.identifier.getCarbonTableIdentifier.getDatabaseName),
       tableName = carbonRelation.identifier.getCarbonTableIdentifier.getTableName,
       options = Map(("fileheader" -> header)),
       isOverwriteTable = false,
-      dataFrame = dataFrame,
-      updateModel = Some(updateTableModel)).process(sparkSession)
+      logicalPlan = dataFrame.queryExecution.analyzed,
+      tableInfo = carbonRelation.carbonTable.getTableInfo,
+      updateModel = Some(updateTableModel)).run(sparkSession)
 
     executorErrors.errorMsg = updateTableModel.executorErrors.errorMsg
     executorErrors.failureCauses = updateTableModel.executorErrors.failureCauses

@@ -28,7 +28,7 @@ import org.apache.spark.sql.{AnalysisException, CarbonEnv, CarbonToSparkAdapter,
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.{AttributeReference, Literal, NamedExpression}
 import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, Project}
-import org.apache.spark.sql.execution.command.AtomicRunnableCommand
+import org.apache.spark.sql.execution.command.{AtomicRunnableCommand, UpdateTableModel}
 import org.apache.spark.sql.execution.datasources.LogicalRelation
 import org.apache.spark.sql.types.{StructField, StructType}
 import org.apache.spark.util.CausedBy
@@ -63,6 +63,7 @@ case class CarbonInsertIntoCommand(databaseNameOp: Option[String],
     var tableInfo: TableInfo,
     var internalOptions: Map[String, String] = Map.empty,
     var partition: Map[String, Option[String]] = Map.empty,
+    var updateModel: Option[UpdateTableModel] = None,
     var operationContext: OperationContext = new OperationContext)
   extends AtomicRunnableCommand {
 
@@ -169,6 +170,9 @@ case class CarbonInsertIntoCommand(databaseNameOp: Option[String],
       selectedColumnSchema,
       convertedStaticPartition)
     scanResultRdd = sparkSession.sessionState.executePlan(newLogicalPlan).toRdd
+    if (updateModel.isDefined) {
+      dataFrame = Dataset.ofRows(sparkSession, newLogicalPlan)
+    }
     if (logicalPartitionRelation != null) {
       if (selectedColumnSchema.length != logicalPartitionRelation.output.length) {
         throw new RuntimeException(" schema length doesn't match partition length")
@@ -199,13 +203,13 @@ case class CarbonInsertIntoCommand(databaseNameOp: Option[String],
           options = options.asJava,
           isOverwriteTable = isOverwriteTable,
           isDataFrame = true,
-          updateModel = None,
+          updateModel = updateModel,
           operationContext = operationContext)
 
       // Clean up the old invalid segment data before creating a new entry for new load.
       SegmentStatusManager.deleteLoadsAndUpdateMetadata(table, false, currPartitions)
       // add the start entry for the new load in the table status file
-      if (!table.isHivePartitionTable) {
+      if (updateModel.isEmpty && !table.isHivePartitionTable) {
         CarbonLoaderUtil.readAndUpdateLoadProgressInTableMeta(
           carbonLoadModel,
           isOverwriteTable)
@@ -224,23 +228,24 @@ case class CarbonInsertIntoCommand(databaseNameOp: Option[String],
         carbonLoadModel.setSegmentId(System.nanoTime().toString)
       }
       val partitionStatus = SegmentStatus.SUCCESS
-      val loadParams = CarbonLoadParams(sparkSession,
-        tableName,
-        sizeInBytes,
-        isOverwriteTable,
-        carbonLoadModel,
-        hadoopConf,
-        logicalPartitionRelation,
-        dateFormat,
-        timeStampFormat,
-        options,
-        finalPartition,
-        currPartitions,
-        partitionStatus,
-        None,
-        Some(scanResultRdd),
-        None,
-        operationContext)
+      val loadParams = CarbonLoadParams(
+        sparkSession = sparkSession,
+        tableName = tableName,
+        sizeInBytes = sizeInBytes,
+        isOverwriteTable = isOverwriteTable,
+        carbonLoadModel = carbonLoadModel,
+        hadoopConf = hadoopConf,
+        logicalPartitionRelation = logicalPartitionRelation,
+        dateFormat = dateFormat,
+        timeStampFormat = timeStampFormat,
+        optionsOriginal = options,
+        finalPartition = finalPartition,
+        currPartitions = currPartitions,
+        partitionStatus = partitionStatus,
+        dataFrame = None,
+        scanResultRDD = Some(scanResultRdd),
+        updateModel = updateModel,
+        operationContext = operationContext)
       LOGGER.info("Sort Scope : " + carbonLoadModel.getSortScope)
       val (rows, loadResult) = insertData(loadParams)
       val info = CommonLoadUtils.makeAuditInfo(loadResult)
@@ -442,18 +447,24 @@ case class CarbonInsertIntoCommand(databaseNameOp: Option[String],
     var rows = Seq.empty[Row]
     val table = loadParams.carbonLoadModel.getCarbonDataLoadSchema.getCarbonTable
     var loadResult : LoadMetadataDetails = null
+    if (updateModel.isDefined) {
+      val rdd = loadParams.sparkSession.sessionState.executePlan(
+        CommonLoadUtils.getDataFrameWithTupleID(Some(dataFrame)).queryExecution.analyzed).toRdd
+      loadParams.scanResultRDD = Some(rdd)
+    }
     if (table.isHivePartitionTable) {
       rows = CommonLoadUtils.loadDataWithPartition(loadParams)
     } else {
-      loadResult = CarbonDataRDDFactory.loadCarbonData(loadParams.sparkSession.sqlContext,
+      loadResult = CarbonDataRDDFactory.loadCarbonData(
+        loadParams.sparkSession.sqlContext,
         loadParams.carbonLoadModel,
         loadParams.partitionStatus,
         isOverwriteTable,
         loadParams.hadoopConf,
         None,
         loadParams.scanResultRDD,
-        None,
-        operationContext)
+        updateModel = updateModel,
+        operationContext = operationContext)
     }
     (rows, loadResult)
   }
