@@ -26,7 +26,6 @@ import com.google.inject.Module;
 import io.airlift.units.DataSize;
 import io.prestosql.plugin.hive.HiveConnectorFactory;
 import io.prestosql.plugin.hive.HiveStorageFormat;
-import io.prestosql.plugin.hive.InternalHiveConnectorFactory;
 import io.prestosql.spi.connector.Connector;
 import io.prestosql.spi.connector.ConnectorContext;
 import sun.reflect.ConstructorAccessor;

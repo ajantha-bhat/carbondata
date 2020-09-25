@@ -37,7 +37,6 @@ import io.prestosql.plugin.base.jmx.MBeanServerModule;
 import io.prestosql.plugin.hive.HiveAnalyzeProperties;
 import io.prestosql.plugin.hive.HiveConnector;
 import io.prestosql.plugin.hive.HiveMetadataFactory;
-import io.prestosql.plugin.hive.HiveModule;
 import io.prestosql.plugin.hive.HiveSchemaProperties;
 import io.prestosql.plugin.hive.HiveSessionProperties;
 import io.prestosql.plugin.hive.HiveTableProperties;

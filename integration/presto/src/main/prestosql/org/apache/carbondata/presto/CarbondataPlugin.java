@@ -17,8 +17,6 @@
 
 package org.apache.carbondata.presto;
 
-import org.apache.carbondata.core.datastore.impl.FileFactory;
-
 import com.google.common.collect.ImmutableList;
 import io.prestosql.spi.Plugin;
 import io.prestosql.spi.connector.ConnectorFactory;
@@ -30,7 +28,4 @@ public class CarbondataPlugin implements Plugin {
     return ImmutableList.of(new CarbondataConnectorFactory("carbondata", CarbondataModule.class));
   }
 
-  private static ClassLoader getClassLoader() {
-    return FileFactory.class.getClassLoader();
-  }
 }
