@@ -17,17 +17,12 @@
 
 package org.apache.carbondata.presto;
 
-import javax.inject.Inject;
-
 import static io.airlift.json.JsonBinder.jsonBinder;
-import static java.util.Objects.requireNonNull;
 
 import org.apache.carbondata.core.constants.CarbonCommonConstants;
 import org.apache.carbondata.core.util.CarbonProperties;
 import org.apache.carbondata.presto.impl.CarbonTableReader;
 
-import com.fasterxml.jackson.databind.DeserializationContext;
-import com.fasterxml.jackson.databind.deser.std.FromStringDeserializer;
 import com.google.inject.Binder;
 import com.google.inject.Scopes;
 import com.google.inject.multibindings.Multibinder;
@@ -76,8 +71,6 @@ import io.prestosql.spi.connector.ConnectorPageSourceProvider;
 import io.prestosql.spi.connector.ConnectorSplitManager;
 import io.prestosql.spi.connector.SystemTable;
 import io.prestosql.spi.type.Type;
-import io.prestosql.spi.type.TypeId;
-import io.prestosql.spi.type.TypeManager;
 
 import static com.google.inject.multibindings.Multibinder.newSetBinder;
 import static io.airlift.configuration.ConfigBinder.configBinder;
@@ -168,24 +161,5 @@ public class CarbondataModule extends HiveModule {
 
     // configure carbon properties
     CarbonProperties.getInstance().addProperty(CarbonCommonConstants.IS_QUERY_FROM_PRESTO, "true");
-  }
-
-  public static final class TypeDeserializer
-      extends FromStringDeserializer<Type>
-  {
-    private final TypeManager typeManager;
-
-    @Inject
-    public TypeDeserializer(TypeManager typeManager)
-    {
-      super(Type.class);
-      this.typeManager = requireNonNull(typeManager, "metadata is null");
-    }
-
-    @Override
-    protected Type _deserialize(String value, DeserializationContext context)
-    {
-      return typeManager.getType(TypeId.of(value));
-    }
   }
 }

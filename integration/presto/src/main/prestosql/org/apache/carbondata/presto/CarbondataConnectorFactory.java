@@ -24,7 +24,6 @@ import org.apache.carbondata.hive.CarbonHiveSerDe;
 import org.apache.carbondata.hive.MapredCarbonInputFormat;
 import org.apache.carbondata.hive.MapredCarbonOutputFormat;
 
-import com.google.inject.Binder;
 import com.google.inject.Module;
 import io.airlift.units.DataSize;
 import io.prestosql.plugin.hive.HiveConnectorFactory;
@@ -33,7 +32,6 @@ import io.prestosql.spi.connector.Connector;
 import io.prestosql.spi.connector.ConnectorContext;
 import sun.misc.Unsafe;
 
-import static com.google.common.base.Throwables.throwIfUnchecked;
 import static io.airlift.units.DataSize.Unit.MEGABYTE;
 
 /**
@@ -41,8 +39,6 @@ import static io.airlift.units.DataSize.Unit.MEGABYTE;
  * It will be called by CarbondataPlugin
  */
 public class CarbondataConnectorFactory extends HiveConnectorFactory {
-
-  private Class<? extends Module> module;
 
   static {
     try {
@@ -52,35 +48,22 @@ public class CarbondataConnectorFactory extends HiveConnectorFactory {
     }
   }
 
-  public CarbondataConnectorFactory(String name) {
-    this(name, EmptyModule.class);
+  public CarbondataConnectorFactory(String connectorName) {
+    this(connectorName, EmptyModule.class);
   }
 
   public CarbondataConnectorFactory(String connectorName, Class<? extends Module> module) {
     super(connectorName, module);
-    this.module = module;
   }
 
 
   @Override
-  public Connector create(String catalogName, Map<String, String> config,
+  public Connector create(
+      String catalogName,
+      Map<String, String> config,
       ConnectorContext context) {
-    ClassLoader classLoader = context.duplicatePluginClassLoader();
-    try {
-      Object moduleInstance = classLoader.loadClass(this.module.getName()).getConstructor().newInstance();
-      Class<?> moduleClass = classLoader.loadClass(Module.class.getName());
-      return (Connector) classLoader.loadClass(InternalCarbonDataConnectorFactory.class.getName())
-          .getMethod("createConnector", String.class, Map.class, ConnectorContext.class, moduleClass)
-          .invoke(null, catalogName, config, context, moduleInstance);
-    }
-    catch (InvocationTargetException e) {
-      Throwable targetException = e.getTargetException();
-      throwIfUnchecked(targetException);
-      throw new RuntimeException(targetException);
-    }
-    catch (ReflectiveOperationException e) {
-      throw new RuntimeException(e);
-    }
+    return InternalCarbonDataConnectorFactory
+        .createConnector(catalogName, config, context, new EmptyModule());
   }
 
   /**
@@ -148,13 +131,6 @@ public class CarbondataConnectorFactory extends HiveConnectorFactory {
     Field modifiersField = Field.class.getDeclaredField("modifiers");
     modifiersField.setAccessible(true);
     modifiersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
-  }
-
-  public static class EmptyModule
-      implements Module
-  {
-    @Override
-    public void configure(Binder binder) {}
   }
 
 }

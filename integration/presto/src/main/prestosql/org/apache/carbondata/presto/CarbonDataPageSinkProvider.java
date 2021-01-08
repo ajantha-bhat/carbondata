@@ -151,7 +151,9 @@ public class CarbonDataPageSinkProvider extends HivePageSinkProvider {
         new HivePageSinkMetadataProvider(
             handle.getPageSinkMetadata(),
             new HiveMetastoreClosure(
-                memoizeMetastore(metastore, perTransactionMetastoreCacheMaximumSize)),
+                memoizeMetastore(
+                    metastore,
+                    perTransactionMetastoreCacheMaximumSize)),
             new HiveIdentity(session)),
         typeManager,
         hdfsEnvironment,

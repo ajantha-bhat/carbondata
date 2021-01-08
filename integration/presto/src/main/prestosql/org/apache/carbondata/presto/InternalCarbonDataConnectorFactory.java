@@ -83,6 +83,10 @@ import static io.airlift.configuration.ConditionalModule.installModuleIf;
 import static io.airlift.configuration.ConfigBinder.configBinder;
 import static java.util.Objects.requireNonNull;
 
+/**
+ * Similar class to InternalHiveConnectorFactory,
+ * to handle the module bindings for carbonData connector.
+ */
 public final class InternalCarbonDataConnectorFactory {
   private InternalCarbonDataConnectorFactory() {
   }
