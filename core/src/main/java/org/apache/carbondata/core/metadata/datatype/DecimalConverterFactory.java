@@ -213,29 +213,6 @@ public final class DecimalConverterFactory {
               vector.putDecimal(i, value, precision);
             }
           }
-        } else if (pageType == DataTypes.BYTE_ARRAY) {
-          // complex primitive decimal dimension
-          int offset = 0;
-          int length;
-          for (int j = 0; j < size; j++) {
-            // here decimal data will be Length[4 byte], scale[1 byte], value[Length byte]
-            if (lengthStoredInBytes == intSizeInBytes) {
-              length = ByteBuffer.wrap(data, offset, lengthStoredInBytes).getInt();
-            } else {
-              length = ByteBuffer.wrap(data, offset, lengthStoredInBytes).getShort();
-            }
-            offset += lengthStoredInBytes;
-            if (length == 0) {
-              vector.putNull(j);
-              continue;
-            }
-            BigDecimal value = DataTypeUtil.byteToBigDecimal(data, offset, length);
-            if (value.scale() < newMeasureScale) {
-              value = value.setScale(newMeasureScale);
-            }
-            vector.putDecimal(j, value, precision);
-            offset += length;
-          }
         }
       }
     }
